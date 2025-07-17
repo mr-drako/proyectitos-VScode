@@ -1,86 +1,108 @@
+import parametros as p
 import pygame
 import time
+import threading
 from random import randint
-from particula import Particula
+from particula import Particula, Spatial_hash, cambio
 
-if __name__ == '__main__':
+
+def urna(parts: tuple) -> None:
     pygame.init()
 
-    # parametros base
-    fullscreen = False
-    color_ventana = pygame.Color(0, 0, 0)
-    radio = 10
-    velocidad_base = (2, 2)
-    num_particulas_1 = int(input("Cantidad de particulas izquierda: "))
-    num_particulas_2 = int(input("Cantidad de particulas Derecha: "))
-    COLOR_LINEA = pygame.Color(255, 255, 255)
+    n_izq, n_der = parts
+    fullscreen = p.FULLSCREEN
 
     # ventana
-    ventana = pygame.display.set_mode((1200, 675))
+    ventana = pygame.display.set_mode((p.WIDTH, p.HEIGHT))
     pygame.display.set_caption("test colisionador")
-    ventana.fill(color_ventana)
-    pygame.draw.line(ventana, COLOR_LINEA, (600, 0), (600, 675), 2)
-    pygame.display.flip()
 
     # particulas
     pos_iniciales = []
     colores = []
     particulas = []
-    for i in range(num_particulas_1):
-        pos_inicial = (randint(radio, ventana.get_width() - radio),
-                       randint(radio, ventana.get_height() - radio))
+    izq = []
+    der = []
+
+    for _ in range(n_izq):
+        pos_inicial = (randint(p.RADIO, p.HALF - p.RADIO),
+                       randint(p.RADIO, p.HEIGHT - p.RADIO))
         while pos_inicial in pos_iniciales:
-            pos_inicial = (randint(radio, ventana.get_width() - radio),
-                           randint(radio, ventana.get_height() - radio))
+            pos_inicial = (randint(p.RADIO, p.HALF - p.RADIO),
+                           randint(p.RADIO, p.HEIGHT - p.RADIO))
         color = (randint(0, 255), randint(0, 255), randint(0, 255))
         while color in colores:
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
-        velocidad = map(lambda x: x * -1 if randint(0, 1) == 1 else x,
-                        velocidad_base)
-        particulas.append(Particula(ventana, color, pos_inicial,
-                                    radio, velocidad, 1))
-    for i in range(num_particulas_2):
-        pos_inicial = (randint(radio, ventana.get_width() - radio),
-                       randint(radio, ventana.get_height() - radio))
+        velocidad = (randint(-2, 2) or 1, randint(-2, 2) or 1)
+        particula = Particula(ventana, color, pos_inicial,
+                              p.RADIO, velocidad, 1)
+        particulas.append(particula)
+        izq.append(particula)
+    for _ in range(n_der):
+        pos_inicial = (randint(p.HALF + p.RADIO, p.WIDTH - p.RADIO),
+                       randint(p.RADIO, p.HEIGHT - p.RADIO))
         while pos_inicial in pos_iniciales:
-            pos_inicial = (randint(radio, ventana.get_width() - radio),
-                           randint(radio, ventana.get_height() - radio))
+            pos_inicial = (randint(p.RADIO, ventana.get_width() - p.RADIO),
+                           randint(p.RADIO, ventana.get_height() - p.RADIO))
         color = (randint(0, 255), randint(0, 255), randint(0, 255))
         while color in colores:
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
-        velocidad = map(lambda x: x * -1 if randint(0, 1) == 1 else x,
-                        velocidad_base)
-        particulas.append(Particula(ventana, color, pos_inicial,
-                                    radio, velocidad, 2))
+        velocidad = (randint(-2, 2) or 1, randint(-2, 2) or 1)
+        particula = Particula(ventana, color, pos_inicial,
+                              p.RADIO, velocidad, 1)
+        particulas.append(particula)
+        der.append(particula)
+    contador = -1
+    try:
+        while True:
 
-    while True:
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F11:
-                    fullscreen = not fullscreen
-                    if fullscreen:
-                        ventana = pygame.display.set_mode((0, 0),
-                                                          pygame.FULLSCREEN)
-                    else:
-                        ventana = pygame.display.set_mode((1200, 675))
-                elif event.key == pygame.K_ESCAPE:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_F11:
+                        fullscreen = not fullscreen
+                        if fullscreen:
+                            ventana = pygame.display.set_mode(
+                                (0, 0),
+                                pygame.FULLSCREEN)
+                        else:
+                            ventana = pygame.display.set_mode((1200, 675))
+                    elif event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        exit()
 
-        ventana.fill(color_ventana)
-        pygame.draw.line(ventana, COLOR_LINEA, (600, 0), (600, 675), 2)
+            ventana.fill(p.WINDOW_COLOR)
+            pygame.draw.line(ventana, p.LINE_COLOR,
+                             (ventana.get_width() // 2, 0),
+                             (ventana.get_width() // 2,
+                              ventana.get_height()), 2)
 
-        for particula in particulas:
-            particula.avanzar()
-            particula.dibujar()
-        for i in range(len(particulas)):
-            for j in range(i + 1, len(particulas)):
-                if particulas[i].colisiona_con(particulas[j]):
-                    particulas[i].manejar_colision(particulas[j])
-
-        pygame.display.update()
-        time.sleep(0.001)
+            contador += 1
+            if contador >= p.COUNTER_LIMIT:
+                # event_cambio.set()
+                thread = threading.Thread(target=cambio, args=(izq, der))
+                thread.start()
+                contador = 0
+            spatio = Spatial_hash(p.CELL_SIZE)
+            for particula in particulas:
+                particula.avanzar()
+                spatio.agregar(particula, particula.posicion)
+                particula.dibujar()
+            for particula in particulas:
+                cercanos = spatio.cercanos(particula.posicion)
+                for part in cercanos:
+                    if part != particula and particula.colisiona_con(part):
+                        particula.manejar_colision(part)
+            # texto de cantidad de particulas
+            fuente = pygame.font.SysFont('Arial', 36)
+            lado_izq = fuente.render(f"cantidad particulas: {len(izq)}", True,
+                                     (255, 255, 255))
+            lado_der = fuente.render(f"cantidad particulas: {len(der)}", True,
+                                     (255, 255, 255))
+            ventana.blit(lado_izq, (0, 0))
+            ventana.blit(lado_der, (ventana.get_width() // 2, 0))
+            pygame.display.flip()
+            time.sleep(p.FPS)
+    except SystemExit:
+        pygame.quit()
