@@ -8,7 +8,9 @@ class Funciones(QObject):
     emisor_data = pyqtSignal(list)
 
     def data_horarios(self) -> list:
-        self.emisor_opciones.emit(os.listdir("horarios"))
+        self.emisor_opciones.emit([nom for nom in os.listdir("horarios")
+                                   if "prueba" not in
+                                   nom and nom != "print.txt"])
 
     def cargar_horario(self, file: str) -> list:
         path = os.path.join("horarios", file)

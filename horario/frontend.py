@@ -15,8 +15,8 @@ class Main_Window(QWidget):
 
     def UI(self) -> None:
         # Geometria de la ventana
-        ancho_ventana = 1200
-        largo_ventana = 600
+        ancho_ventana = 1500
+        largo_ventana = 800
         x_ventana = (1920 - ancho_ventana) // 2
         y_ventana = (1080 - largo_ventana) // 2
         self.setGeometry(x_ventana, y_ventana, ancho_ventana, largo_ventana)
@@ -24,13 +24,14 @@ class Main_Window(QWidget):
 
         # Widgets
         self.nombres = QListWidget(self)
-        self.horario = QTableWidget(6, 5, self)
-        self.horario.setMinimumSize(752, 600)
+        self.horario = QTableWidget(7, 5, self)
+        self.horario.setMinimumSize(824, 691)
         self.horario.setHorizontalHeaderLabels(["Lunes", "Martes", "Miercoles",
                                                 "Jueves", "Viernes"])
+        self.horario.setVerticalHeaderLabels(["8:20", "9:40", "11:00", "12:20",
+                                              "13:30", "14:50", "16:10"])
         for row in range(self.horario.rowCount()):
             self.horario.setRowHeight(row, 93)
-        self.horario.verticalHeader().setVisible(False)
         self.boton = QPushButton('Generar horario', self)
         self.boton.clicked.connect(self.selecciones)
 
@@ -87,6 +88,8 @@ class Main_Window(QWidget):
         self.horario.clear()
         self.horario.setHorizontalHeaderLabels(["Lunes", "Martes", "Miercoles",
                                                 "Jueves", "Viernes"])
+        self.horario.setVerticalHeaderLabels(["8:20", "9:40", "11:00", "12:20",
+                                              "13:30", "14:50", "16:10"])
         for row in range(self.horario.rowCount()):
             for col in range(self.horario.columnCount()):
                 if self.horario.item(row, col) is None:
